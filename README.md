@@ -1,49 +1,33 @@
-# CEAMEC v1.0
-Cost-Effective Animal Management via Environmental Capacity
+# CEAMEC beta
+
+Demostration with distance sampling dataset of pigeons in Singapore
 
 ## Installation
 
 ```R
-list.of.packages <- c("shiny","rgdal","leaflet","shinycssloaders","shinythemes","tibble","unmarked","DT","data.table","xlsx")
+list.of.packages <- c("shiny","rgdal","leaflet","shinycssloaders","shinythemes","tibble","unmarked","DT","data.table","xlsx","rgenoud")
 req.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(req.packages)) install.packages(req.packages, dependencies = TRUE)
-shiny::runGitHub('CEAMEC', 'qt37t247')
+shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 ```
 
-## Input data preparation
+## How to use
 
-Before using CEAMEC, please prepare the input files according to the structure of R package unmarked:
+1. Download the repository, unzip to aquire example files.
 
+2. Follow the user manual to complete the CEAMEC run (for the demo with distance sampling, you could use the default parameters that already at place in the text boxes). 
 
-Distance sampling:
-Example data file provided in CEAMEC Github page: distdata.csv and cov.csv
+3. Acomplished the run and download the results. 
 
-https://rdrr.io/cran/unmarked/f/inst/doc/distsamp.pdf
+4. Raise issues and provide feedbacks.
 
-https://rdrr.io/cran/unmarked/man/unmarkedFrameDS.html
+## What have changed from main version
 
+1. Added function "parboot" from R package "unmarked" to examine the adequacy of model fit.
 
-Repeated count:
-Example data file provided in CEAMEC Github page: mld_pcount.csv
+2. Removed placeholder in the distance sampling input session for easier access to the default value of parameters in demo runs.
 
-https://rdrr.io/cran/unmarked/man/unmarkedFramePCount.html
-
-https://studylib.net/doc/6696451/fitting-royle-s-n-mixture-model-with-package-unmarked-in-...
-
-
-Removal sampling:
-Example data file provided in CEAMEC Github page: oven_removal.csv
-
-https://rdrr.io/cran/unmarked/man/ovendata.html
-
-
-Double observer sampling:
-Example data file provided in CEAMEC Github page: fake_double.csv
-
-https://rdrr.io/cran/unmarked/man/unmarkedFrameMPois.html
-
-
-In addition, CEAMEC requires a cost file listing unit costs of management methods corresponding to covariates to be managed (see example file "cost.csv")  
+3. Allow spaces to be typed in the text boxes.    
 
 ## Contact author
 
