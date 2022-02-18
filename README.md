@@ -27,7 +27,9 @@ shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 
 2. Removed placeholder in the distance sampling input session for easier access to the default value of parameters in demo runs.
 
-3. Allow spaces to be typed in the text boxes.    
+3. Allow spaces to be typed in the text boxes.
+
+4. Tooltips are now available.   
 
 ## Contact author
 
