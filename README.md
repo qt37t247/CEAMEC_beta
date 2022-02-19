@@ -15,7 +15,7 @@ shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 
 1. Download the repository, unzip to aquire example files.
 
-2. Follow the user manual to complete the CEAMEC run (for the demo with distance sampling, you could use the default parameters that already at place in the text boxes). 
+2. Follow the user manual (section 5.	Example data demostration) to complete the CEAMEC run. 
 
 3. Acomplished the run and download the results. 
 
