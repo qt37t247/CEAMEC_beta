@@ -29,7 +29,9 @@ shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 
 3. Allow spaces to be typed in the text boxes.
 
-4. Tooltips are now available.   
+4. Tooltips are now available at every input.
+
+5. Background density of selected cells is available.  
 
 ## Contact author
 
