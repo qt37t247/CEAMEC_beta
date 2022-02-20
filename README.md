@@ -11,7 +11,7 @@ if(length(req.packages)) install.packages(req.packages, dependencies = TRUE)
 shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 ```
 
-## How to use
+## How to run the demo
 
 1. Download the repository, unzip to aquire example files.
 
@@ -25,7 +25,7 @@ shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 
 1. Added function "parboot" from R package "unmarked" to examine the adequacy of model fit.
 
-2. Removed placeholder in the distance sampling input session for easier access to the default value of parameters in demo runs.
+2. Removed placeholder in the distance sampling input textboxes for easier access to the default values of parameters in demo runs.
 
 3. Allow spaces to be typed in the text boxes.
 
