@@ -76,7 +76,7 @@ ui <- navbarPage("Cost-Effective Animal Management via Environmental Capacity",
                                            )
                                        ),
                                      
-                                     textInput("tlength", "Length of transects in meters (only applicable for line transects)", "100,100,100,100,100,100,100", width = "70%")%>%
+                                     textInput("tlength", "Length of transects in meters (only applicable for line transects)", placeholder = "100,100,100,100,100,100,100", width = "70%")%>%
                                        shinyInput_label_embed(
                                          shiny_iconlink() %>%
                                            bs_embed_popover(
