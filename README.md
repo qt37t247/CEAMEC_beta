@@ -4,7 +4,7 @@ Demostration with distance sampling dataset of pigeons in Singapore
 
 In the beta, we removed placeholder in the distance sampling input textboxes for easier access to the default values of parameters in demo runs.
 
-Changes during peer-review process will reflect in the beta repository before we permanently apply the changes to the main CEAMEC repository.  
+Changes during peer-review process will reflect in the beta repository before we permanently apply the changes to the CEAMEC master repository and Shiny Cloud.  
 
 ## Installation
 
