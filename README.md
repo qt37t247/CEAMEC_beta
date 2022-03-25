@@ -2,6 +2,10 @@
 
 Demostration with distance sampling dataset of pigeons in Singapore
 
+In the beta, we removed placeholder in the distance sampling input textboxes for easier access to the default values of parameters in demo runs.
+
+Changes during peer-review process will reflect in the beta repository before we permanently apply the changes to the main CEAMEC repository.  
+
 ## Installation
 
 ```R
@@ -25,7 +29,7 @@ shiny::runGitHub('CEAMEC_beta', 'qt37t247')
 
 1. Added function "parboot" from R package "unmarked" to examine the adequacy of model fit.
 
-2. Removed placeholder in the distance sampling input textboxes for easier access to the default values of parameters in demo runs.
+2. 
 
 3. Allow spaces to be typed in the text boxes.
 
