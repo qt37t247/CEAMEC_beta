@@ -9,7 +9,7 @@ Changes during peer-review process will reflect in the beta repository before we
 ## Installation
 
 ```R
-list.of.packages <- c("shiny","rgdal","leaflet","shinycssloaders","shinythemes","tibble","unmarked","DT","data.table","xlsx","rgenoud","htmltools","bsplus")
+list.of.packages <- c("shiny","rgdal","leaflet","shinycssloaders","shinythemes","tibble","unmarked","DT","data.table","xlsx","rgenoud","htmltools","bsplus","dplyr","shinycssloaders")
 req.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(req.packages)) install.packages(req.packages, dependencies = TRUE)
 shiny::runGitHub('CEAMEC_beta', 'qt37t247')
