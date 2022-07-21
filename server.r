@@ -1,4 +1,3 @@
-##################################################### Integration ###########################################################
 #load package
 library(shiny)
 library(rgdal)
@@ -10,6 +9,8 @@ library(unmarked)
 library(DT)
 library(data.table)
 library(xlsx)
+library(plyr)
+library(rgeos)
 
 # server()
 server <- function(input, output, session) { 
@@ -18,36 +19,84 @@ server <- function(input, output, session) {
     req(input$distdata)
     distd <- read.csv(input$distdata$datapath, header=TRUE)
     yDat <- formatDistData(distd, distCol="distance",
-                           transectNameCol="transect", dist.breaks=as.numeric(unlist(strsplit(gsub(" ", "", input$distbreak), ","))))
+                           transectNameCol="transect", dist.breaks=seq(0, round_any(max(distd[,1], na.rm = TRUE), as.numeric(input$binsize), f = ceiling), as.numeric(input$binsize)))
     req(input$covariates)
     covd <- read.csv(input$covariates$datapath, header=TRUE)
-    umf <- unmarkedFrameDS(y=as.matrix(yDat), siteCovs=covd, survey=input$surveydist,
-                           dist.breaks=as.numeric(unlist(strsplit(gsub(" ", "", input$distbreak), ","))), tlength=as.numeric(unlist(strsplit(input$tlength, ","))), unitsIn="m")
+    umf <- unmarkedFrameDS(y=as.matrix(yDat), siteCovs=covd[,1:(ncol(covd)-1)], survey=input$surveydist,
+                           dist.breaks=seq(0, round_any(max(distd[,1], na.rm = TRUE), as.numeric(input$binsize), f = ceiling), as.numeric(input$binsize)), tlength=covd[,ncol(covd)], unitsIn="m")
     umf
   })  
   
-  pcountd <- reactive({
+  output$summary_distsamp <- renderPrint({
+    req(input$distdata, input$covariates, input$binsize)
+    summary(distd())
+  })
+  
+  output$Hist <- renderPlot({
+    req(input$distdata, input$covariates, input$binsize)
+    unmarked::hist(distd())
+  })
+  
+  output$countcol <- renderUI({
     req(input$pcdata)
+    colnames_pc <- colnames(read.csv(input$pcdata$datapath, header=TRUE))
+    checkboxGroupInput("countcol", "Column names for counts", colnames_pc, inline = TRUE)
+  })
+
+    output$sitecol <- renderUI({
+    req(input$pcdata)
+    colnames_pc <- colnames(read.csv(input$pcdata$datapath, header=TRUE))
+    checkboxGroupInput("sitecol", "Column names for site covariates", colnames_pc, inline = TRUE)
+  })
+
+  output$obscol <- renderUI({
+    req(input$pcdata)
+    colnames_pc <- colnames(read.csv(input$pcdata$datapath, header=TRUE))
+    checkboxGroupInput("obscol", "Column names for observation covariates", colnames_pc, inline = TRUE)
+  })
+  
+  pcountd <- reactive({
+    req(input$countcol, input$sitecol, input$obscol)
     pcountd <- read.csv(input$pcdata$datapath, header=TRUE)
-    obsnames <- unique(sub("\\..*", "", unlist(strsplit(gsub(" ", "", input$obscol), ","))))
+    obsnames <- unique(sub("\\..*", "", input$obscol, ","))
     obscovs <- list()
     for (i in 1:length(obsnames)){
       obscovs$X <- pcountd[ ,grepl(obsnames[i], names(pcountd))]
       names(obscovs)[names(obscovs)=="X"] <- paste(obsnames[i])
     }
-    umf <- unmarkedFramePCount(y=pcountd[,unlist(strsplit(gsub(" ", "", input$countcol), ","))], 
-                               siteCovs=pcountd[,unlist(strsplit(gsub(" ", "", input$sitecol), ","))],
+    umf <- unmarkedFramePCount(y=pcountd[, input$countcol], 
+                               siteCovs=pcountd[, input$sitecol],
                                obsCovs=obscovs)
     umf
   })
   
+  output$summary_pcount <- renderPrint({
+    req(input$countcol, input$sitecol, input$obscol)
+    summary(pcountd())
+  })
+  
+  output$countcolm <- renderUI({
+    req(input$mndata)
+    colnames_mn <- colnames(read.csv(input$mndata$datapath, header=TRUE))
+    checkboxGroupInput("countcolm", "Column names for counts", colnames_mn, inline = TRUE)
+  })
+
+    output$sitecolm <- renderUI({
+    req(input$mndata)
+    colnames_mn <- colnames(read.csv(input$mndata$datapath, header=TRUE))
+    checkboxGroupInput("sitecolm", "Column names for site covariates", colnames_mn, inline = TRUE)
+  })
+
+  output$obscolm <- renderUI({
+    req(input$mndata)
+    colnames_mn <- colnames(read.csv(input$mndata$datapath, header=TRUE))
+    checkboxGroupInput("obscolm", "Column names for observation covariates", colnames_mn, inline = TRUE)
+  })
   
   mnd <- reactive({
-    req(input$mndata)
+    req(input$countcolm, input$sitecolm)
     mnd <- read.csv(input$mndata$datapath, header=TRUE)
-    obsnamesm <- unique(sub("\\..*", "", unlist(strsplit(gsub(" ", "", input$obscolm), ","))))
-    
-    
+    obsnamesm <- unique(sub("\\..*", "", input$obscolm, ","))
     if(length(obsnamesm)!=0){
       obscovsm <- list()
       for (i in 1:length(obsnamesm)){
@@ -56,12 +105,16 @@ server <- function(input, output, session) {
       }
     } else {obscovsm <- NULL}
     
-    umf <- unmarkedFrameMPois(y=mnd[,as.character(unlist(strsplit(gsub(" ", "", input$countcolm), ",")))], 
-                              siteCovs=mnd[,unlist(strsplit(gsub(" ", "", input$sitecolm), ","))],
+    umf <- unmarkedFrameMPois(y=mnd[, input$countcolm], 
+                              siteCovs=mnd[, input$sitecolm],
                               obsCovs=obscovsm, type = input$mntype)
     umf
   })
   
+  output$summary_mn <- renderPrint({
+    req(input$countcolm, input$sitecolm)
+    summary(mnd())
+  })
   
   observeEvent(input$detect, {
     
@@ -136,6 +189,21 @@ server <- function(input, output, session) {
     
   })
   
+  output$bestmodels_distsamp <- renderUI({
+    req(input$ModelCovs_distsamp)
+    fitsPC <- fitList(fits=covmodel)
+    (msPC<-modSel(fitsPC))
+    modelnames <- msPC@Full$model
+    selectInput("best_distsamp", "Select the best model", modelnames)%>%
+      shinyInput_label_embed(
+        shiny_iconlink() %>%
+          bs_embed_popover(
+            content = "You could choose based on the table above (normally the model with lowest AIC)", placement = "right", trigger = "hover"
+          )
+      )
+  })
+  
+  
   #repeated count covmodel calculation
   observeEvent(input$ModelCovs_pcount, {
     
@@ -145,7 +213,7 @@ server <- function(input, output, session) {
     
     for (i in as.character(unlist(strsplit(gsub(" ", "", input$det_pc), ",")))){
       for (j in as.character(unlist(strsplit(gsub(" ", "", input$state_pc), ",")))) {
-        covmodels$X <- pcount(formula(paste("~",i,"~",j, sep="")), umf, mixture = as.character(input$mixture))
+        covmodels$X <- pcount(formula(paste("~",i,"~",j, sep="")), umf, mixture = input$mixture)
         names(covmodels)[names(covmodels)=="X"] <- paste(i,j,sep="_")
       }
     }
@@ -163,6 +231,20 @@ server <- function(input, output, session) {
     
   })
   
+  output$bestmodels_pcount <- renderUI({
+    req(input$ModelCovs_pcount)
+    fitsPC <- fitList(fits=covmodel)
+    (msPC<-modSel(fitsPC))
+    modelnames <- msPC@Full$model
+    selectInput("best_pcount", "Select the best model", modelnames)%>%
+      shinyInput_label_embed(
+        shiny_iconlink() %>%
+          bs_embed_popover(
+            content = "You could choose based on the table above (normally the model with lowest AIC)", placement = "right", trigger = "hover"
+          )
+      )
+  })  
+  
   #multinomial covmodel calculation
   observeEvent(input$ModelCovs_mn, {
     
@@ -177,8 +259,6 @@ server <- function(input, output, session) {
         names(covmodels)[names(covmodels)=="X"] <- paste(i,j,sep="_")
       }
     }
-    
-    
     fitsPC <- fitList(fits=covmodels)
     (msPC<-modSel(fitsPC))
     covmodels_df <- data.frame(msPC@Full$model, msPC@Full$nPars, msPC@Full$AIC, msPC@Full$delta, msPC@Full$AICwt, msPC@Full$cumltvWt)
@@ -191,6 +271,20 @@ server <- function(input, output, session) {
       
     })
     
+  })
+  
+  output$bestmodels_mn <- renderUI({
+    req(input$ModelCovs_mn)
+    fitsPC <- fitList(fits=covmodel)
+    (msPC<-modSel(fitsPC))
+    modelnames <- msPC@Full$model
+    selectInput("best_mn", "Select the best model", modelnames)%>%
+      shinyInput_label_embed(
+        shiny_iconlink() %>%
+          bs_embed_popover(
+            content = "You could choose based on the table above (normally the model with lowest AIC)", placement = "right", trigger = "hover"
+          )
+      )
   })
   
   #model re-fit with parametric bootstraps (distance sampling)
@@ -209,8 +303,8 @@ server <- function(input, output, session) {
       out <- c(SSE=sse, Chisq=chisq, freemanTukey=freeTuke)
       return(out)
     }#######End function fitstats
-    formula <- covmodel[[as.character(input$best)]]@formula
-    keyfun <- covmodel[[as.character(input$best)]]@keyfun
+    formula <- covmodel[[input$best_distsamp]]@formula
+    keyfun <- covmodel[[input$best_distsamp]]@keyfun
     umf <- distd()
     if (keyfun == "hazard") {
       xxx <- distsamp(formula, umf, keyfun = "hazard", output = "density", unitsOut = "ha")
@@ -246,7 +340,7 @@ server <- function(input, output, session) {
     })
     
   })
-  
+
   #model re-fit with parametric bootstraps (repeat count)
   observeEvent(input$Parboot_pcount, {
     
@@ -264,8 +358,8 @@ server <- function(input, output, session) {
       return(out)
     }#######End function fitstats
     
-    formula <- covmodel[[as.character(input$best)]]@formula
-    mixture <- covmodel[[as.character(input$best)]]@mixture
+    formula <- covmodel[[input$best_pcount]]@formula
+    mixture <- covmodel[[input$best_pcount]]@mixture
     umf <- pcountd()
     if (mixture == "P") {
       xxx <- pcount(formula, umf, mixture = "P")
@@ -317,7 +411,7 @@ server <- function(input, output, session) {
       return(out)
     }#######End function fitstats
     
-    formula <- covmodel[[as.character(input$best)]]@formula
+    formula <- covmodel[[input$best_mn]]@formula
     umf <- mnd()
     xxx <- multinomPois(formula, umf)
     pb <- parboot(xxx, fitstats, nsim=as.numeric(input$nsims))
@@ -346,36 +440,60 @@ server <- function(input, output, session) {
     
   })
   
+  output$Managerables_distsamp <- renderUI({
+    req(input$covariates)
+    covnames <- head(colnames(read.csv(input$covariates$datapath, header=TRUE)), -1)
+    checkboxGroupInput("mcovs_distsamp", "Select covariates to be managed", covnames, inline = TRUE)
+  })
+  
+  output$Managerables_pcount <- renderUI({
+    req(input$sitecol)
+    checkboxGroupInput("mcovs_pcount", "Select covariates to be managed", input$sitecol, inline = TRUE)
+  })
+  
+  output$Managerables_mn <- renderUI({
+    req(input$sitecolm)
+    checkboxGroupInput("mcovs_mn", "Select covariates to be managed", input$sitecolm, inline = TRUE)
+  })
   
   #Density estimation
+  
   rsp_F <- reactive({
-    req(input$newdata)
+    req(input$newdata, input$gr, input$mth, input$le, input$lw, input$ln, input$ls, input$nrows, input$ncols)
     newdata <- read.csv(input$newdata$datapath, header=TRUE)
+    if (is.null(input$mcovs_distsamp) == FALSE) {mcovs <- input$mcovs_distsamp} else 
+      if (is.null(input$mcovs_pcount) == FALSE) {mcovs <- input$mcovs_pcount} else
+      {mcovs <- input$mcovs_mn}
     newdatax <- newdata
-    newdatax[,as.character(unlist(strsplit(gsub(" ", "", input$mcovs), ",")))] <- 0
-    P_dens <- predict(covmodel[[as.character(input$best)]], type = "state", newdata = newdata, appendData = TRUE)
-    P_densx <- predict(covmodel[[as.character(input$best)]], type = "state", newdata = newdatax)
+    newdatax[,mcovs] <- 0
+    if (is.null(input$best_distsamp) == FALSE) {best <- input$best_distsamp} else 
+      if (is.null(input$best_pcount) == FALSE) {best <- input$best_pcount} else
+      {best <- input$best_mn}
+    if (input$area_pcount != "") {area <- as.numeric(input$area_pcount)} else 
+      if (input$area_mn != "") {area <- as.numeric(input$area_mn)} else
+      {area <- 1}
+    P_dens <- predict(covmodel[[best]], type = "state", newdata = newdata, appendData = TRUE)
+    P_densx <- predict(covmodel[[best]], type = "state", newdata = newdatax)
     P_densx[,2] <- P_dens[,1]*exp(as.numeric(input$gr)*as.numeric(input$mth))*P_densx[,1]/(P_dens[,1]*exp(as.numeric(input$gr)*as.numeric(input$mth))+P_densx[,1]-P_dens[,1])
-    P_dens[,1] <- P_dens[,1]/as.numeric(input$area)
-    P_densx <- P_densx[,2]/as.numeric(input$area)
+    P_dens[,1] <- P_dens[,1]/area
+    P_densx <- P_densx[,2]/area
     P_dens <- cbind(P_dens,P_densx)
     rs <- raster::raster(raster::extent(as.numeric(input$lw),as.numeric(input$le),as.numeric(input$ls),as.numeric(input$ln)), nrows=as.numeric(input$nrows),ncols=as.numeric(input$ncols))
     rs[] <- 1:raster::ncell(rs)
     rsp <- raster::rasterToPolygons(rs)
     sp::merge(rsp,P_dens,by.x="layer",by.y="layer", all.x=FALSE)
   })
-  
-  
-  
+
   #check the score of each model
-  
-  
+
   costi <- reactive({
     req(input$cost)
     costs <- read.csv(input$cost$datapath, header=TRUE)
-    bestmodels <- covmodel[names(covmodel) == input$best]
-    coeffs <- as.data.frame(bestmodels[[1]]@estimates@estimates$state@estimates)
-    name_coeffs <- as.data.frame(names(bestmodels[[1]]@estimates@estimates$state@estimates))
+    if (is.null(input$best_distsamp) == FALSE) {best <- input$best_distsamp} else 
+      if (is.null(input$best_pcount) == FALSE) {best <- input$best_pcount} else
+      {best <- input$best_mn}
+    coeffs <- as.data.frame(covmodel[[best]]@estimates@estimates$state@estimates)
+    name_coeffs <- as.data.frame(names(covmodel[[best]]@estimates@estimates$state@estimates))
     row.names(coeffs) <- NULL
     coeffs <- cbind(name_coeffs, coeffs)
     names(coeffs) <- c("X", "coefficient")
@@ -385,9 +503,8 @@ server <- function(input, output, session) {
   binpal <- colorBin("Reds", c(0:14), 9, pretty = FALSE)
   
   output$map <- renderLeaflet({  
-    
+    req(rsp_F())
     rsp_x<-rsp_F()
-    
     labels <- sprintf(
       "<strong>Estimated density: %s</strong><br/>Density exhausting manageable covariates: %g",
       rsp_x$Predicted, rsp_x$P_densx
@@ -500,8 +617,11 @@ server <- function(input, output, session) {
       p<-rsp_n@data
       ps<-subset(p,p$layer==ly)
       ply<-ps[,c("layer","Predicted","SE","lower","upper",as.character(co[,1]))]
-      N0=ply$Predicted*as.numeric(input$area)
-      Nt<-expect*as.numeric(input$area)
+      if (input$area_pcount != "") {area <- as.numeric(input$area_pcount)} else 
+        if (input$area_mn != "") {area <- as.numeric(input$area_mn)} else
+        {area <- 1}
+      N0=ply$Predicted*area
+      Nt<-expect*area
       T<-time
       K<-(N0*(exp(r*T)-1))*Nt/(N0*exp(r*T)-Nt)  
       Delta<-log(N0)-log(K)
@@ -554,8 +674,10 @@ server <- function(input, output, session) {
       qqn <- cbind(qqqq, psn)
       qqn <- t(rowsum(t(qqn), group = colnames(qqn), na.rm = T))
       newdatar <- cbind(qqn,psc)
-      
-      P_densr <- predict(covmodel[[as.character(input$best)]], type = "state", newdata = newdatar)
+      if (is.null(input$best_distsamp) == FALSE) {best <- input$best_distsamp} else 
+        if (is.null(input$best_pcount) == FALSE) {best <- input$best_pcount} else
+        {best <- input$best_mn}
+      P_densr <- predict(covmodel[[best]], type = "state", newdata = newdatar)
       P_densr[,2] <- P_densr[1,1]*exp(r*T)*P_densr[,1]/(P_densr[1,1]*exp(r*T)+P_densr[,1]-P_densr[1,1])
       
       q_values <- qqq
