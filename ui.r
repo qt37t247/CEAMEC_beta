@@ -161,11 +161,10 @@ must match number of transects. Number of columns should equal to number of cova
                                      ),
                                      
                                      br(),
-
-                                     p(class = "first-p", "Covariates to be managed"),
                                      
                                      uiOutput("Managerables_distsamp"),
-
+                                     
+                                     br()
                             ),#End Tab "Distance sampling"
                             
                             #Tab "Repeated count"
@@ -281,10 +280,8 @@ must match number of transects. Number of columns should equal to number of cova
                                      
                                      br(),
                                      
-                                     p(class = "first-p", "Covariates to be managed"),
-                                     
-                                     uiOutput("Managerables_pcount")
-
+                                     uiOutput("Managerables_pcount"),
+                                     br()
                             ),
                             #End Tab "Repeated count"
                             
@@ -381,9 +378,8 @@ must match number of transects. Number of columns should equal to number of cova
                                      
                                      br(),
                                      
-                                     p(class = "first-p", "Covariates to be managed"),
-                                     
-                                     uiOutput("Managerables_mn")
+                                     uiOutput("Managerables_mn"),
+                                     br()
                             )
                  ),
                  
@@ -491,7 +487,11 @@ must match number of transects. Number of columns should equal to number of cova
                           br(),
                           
                           p(class = "second-p", "Summary and per cell management suggestions:"),
-                          downloadButton("downloadPer",label = "Save as excel", class = "btn btn-primary")
+                          downloadButton("downloadPer",label = "Save as excel", class = "btn btn-primary"),
+                          
+                          br(),
+                          br(),
+                          br()
                  )
                  #End Tab "CEAMEC"
 )#end UI
